@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: user_system_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: user_system
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - user_system_network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: user_system_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - user_system_network
+
+  app:
+    build: .
+    container_name: user_system_app
+    ports:
+      - "8080:8080"
+      - "9090:9090"
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: user_system
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      HTTP_PORT: 8080
+      TCP_PORT: 9090
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - user_system_network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  user_system_network:
+    driver: bridge 
